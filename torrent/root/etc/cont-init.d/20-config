@@ -1,0 +1,37 @@
+#!/usr/bin/with-contenv bash
+
+# make folders
+mkdir -p \
+	/downloads/{complete,incomplete} /watch
+
+# copy config
+#"rpc-port": 9092,
+#[[ ! -f /config/settings.json ]] && cp \
+#	/defaults/settings.json /config/settings.json 
+
+#[[ ! -f /config/start.py ]] && cp \
+#	/defaults/*.py /config/
+cp /defaults/settings.json /config/settings.json 
+cp /defaults/*.py /config/
+
+if [ ! -z "$USER" ] && [ ! -z "$PASS" ]; then
+	sed -i '/rpc-port/c\    "rpc-port": 9092,' /config/settings.json
+	sed -i "/rpc-username/c\    \"rpc-username\": \"$USER\"," /config/settings.json
+	sed -i "/rpc-password/c\    \"rpc-password\": \"$PASS\"," /config/settings.json
+        sed -i '/rename-partial-files/c\    "rename-partial-files": false,' /config/settings.json
+        sed -i '/incomplete-dir-enabled/c\    "incomplete-dir-enabled": false,' /config/settings.json
+	sed -i '/rpc-authentication-required/c\    "rpc-authentication-required": true,' /config/settings.json
+	sed -i '/script-torrent-done-enabled/c\    "script-torrent-done-enabled": true,' /config/settings.json
+	sed -i '/script-torrent-done-filename/c\    "script-torrent-done-filename": "/config/start.py",' /config/settings.json
+fi
+
+# permissions
+chown abc:abc \
+	/config/settings.json \
+	/config/*.py \
+	/downloads \
+	/downloads/complete \
+	/downloads/incomplete \
+	/sorted \
+	/watch
+chmod 777 /config/*.py

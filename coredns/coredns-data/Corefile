@@ -1,0 +1,7 @@
+example.com:53 {
+    import /etc/coredns/config/common.conf
+    file /etc/coredns/zones/db.example.com example.com
+}
+.:53 {
+    import /etc/coredns/config/ext_common.conf
+}

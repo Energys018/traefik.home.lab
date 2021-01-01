@@ -1,0 +1,28 @@
+api:
+  dashboard: true
+
+entryPoints:
+  http:
+    address: ":80/tcp"
+  http-metric:
+    address: ":9100/tcp"
+  dnsudp:
+    address: ":53/udp"
+metrics:
+  prometheus:
+    entryPoint: http-metric
+providers:
+  docker:
+    network: tophatmedia_internal_proxy
+  file:
+    directory: /custom
+    watch: true
+log:
+  #level: "DEBUG"
+  level: "ERROR"
+  #accessLog:
+  #bufferingSize: 100
+  #filters:    
+  #  statusCodes:
+  #    - "300-302"
+  #  minDuration: "10ms"

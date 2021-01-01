@@ -1,0 +1,137 @@
+version: '3.3'
+
+services:
+############# - Torrents - #############
+    torrent:
+        build: ./torrent/
+        container_name: THM_transmission
+        environment:
+            - PUID=1000
+            - PGID=1000
+            - TZ=Asia/Yakutsk
+            - USER=admin #optional
+            - PASS=admin #optional
+        depends_on:
+            - traefik
+        networks:
+            - internal_proxy
+        volumes:
+            - torrent_downloads:/downloads
+            - torrent_sortedLF:/sorted
+            - torrent_config:/config
+            - torrent_watch:/watch
+            - minidlna_music:/music
+            - minidlna_films:/films
+        expose:
+            - "9092/tcp"
+        labels:
+            - traefik.enable=true
+            - traefik.http.routers.torrent-http.rule=Host(`torr.traefik.home.lab`)
+            - traefik.http.routers.torrent-http.entrypoints=http
+        restart: unless-stopped
+    torrentmonitor:
+        container_name: THM_torrentmonitor
+        image: nawa/armhf-torrentmonitor
+        restart: always
+        expose:
+            - "80/tcp"
+        volumes:
+            - torrentmonitor-torrents:/data/htdocs/torrents
+            - torrentmonitor-db:/data/htdocs/db
+        networks:
+            - internal_proxy
+        depends_on:
+            - traefik
+        labels:
+            - traefik.enable=true
+            - traefik.http.routers.torrentmonitor-http.rule=Host(`tm.traefik.home.lab`)
+            - traefik.http.routers.torrentmonitor-http.entrypoints=http
+        environment:
+            - TZ=Asia/Yakutsk
+            - PHP_TIMEZONE=Asia/Yakutsk
+
+############# - Dockerrized - #############
+#    registry:
+#         restart: always
+#         image: registry:2
+#         ports:
+#            - 5000:5000
+#         volumes:
+#            - registry_data:/var/lib/registry
+#         labels:
+#            - traefik.enable=false
+
+############# - MediaServers - #############
+    minidlna:
+        build: ./minidlna/
+        volumes:
+            - torrent_sortedLF:/sorted
+            - torrent_downloads:/downloads
+            - minidlna_music:/music
+            - minidlna_films:/films
+        container_name: THM_minidlna
+        depends_on:
+            - traefik
+        environment:
+            # enterypoint.sh
+            - MINIDLNA_MEDIA_DIR=V,/sorted 
+            - MINIDLNA1_MEDIA_DIR=V,/films
+            - MINIDLNA2_MEDIA_DIR=A,/music
+            - MINIDLNA_PORT=8200
+            - MINIDLNA_WIDE_LINKS=yes
+            - MINIDLNA_LOG_LEVEL=info
+            - MINIDLNA_FRIENDLY_NAME=TopHatMedia_dlna
+            # enterypoint.sh
+        labels:
+            - traefik.enable=false
+        network_mode: "host"
+        restart: always
+
+############# - MONITORING - #############
+    traefik:
+        image: traefik:latest
+        restart: on-failure # other option: always - if you want persistent through host reboots
+        container_name: THM_traefik
+        ports:
+            - '80:80/tcp'
+            - '53:53/udp'
+        networks:
+            - internal_proxy
+        labels:
+            - traefik.enable=true
+            - traefik.http.routers.traefik-http.rule=Host(`dashboard.traefik.home.lab`)
+            - traefik.http.routers.traefik-http.entrypoints=http
+            - traefik.http.routers.traefik-http.service=api@internal
+        volumes:
+            - ./traefik/config/traefik.yml:/traefik.yml
+            - ./traefik/custom/:/custom/
+            - /var/run/docker.sock:/var/run/docker.sock
+    coredns:
+        build: ./coredns/
+        container_name: THM_coredns
+        depends_on:
+            - traefik
+        restart: on-failure # other option: always - if you want persistent through host reboots
+        expose:
+            - '53/udp'
+        networks:
+            - internal_proxy
+        labels:
+            - traefik.enable=true
+            - traefik.udp.routers.coredns.entrypoints=dnsudp
+            - traefik.udp.services.dnsudp.loadbalancer.server.port=53
+        volumes:
+            - './coredns/coredns-data:/etc/coredns'
+
+volumes:
+  torrent_config: {}
+  torrent_watch: {}
+  torrent_downloads: {}
+  torrentmonitor-torrents: {}
+  torrentmonitor-db: {}
+  torrent_sortedLF: {}
+  minidlna_music: {}
+  minidlna_films: {}
+
+networks:
+    internal_proxy:

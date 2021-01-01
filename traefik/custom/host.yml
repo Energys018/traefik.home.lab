@@ -1,0 +1,13 @@
+http:
+  routers:
+    host:
+      entryPoints: 
+      - http
+      service: loco.traefik.home.lab
+      rule: Host(`loco.traefik.home.lab`) 
+  services:
+    loco.traefik.home.lab:  
+      loadBalancer:
+        servers:
+        - url: http://10.10.10.2:80/
+        passHostHeader: true
